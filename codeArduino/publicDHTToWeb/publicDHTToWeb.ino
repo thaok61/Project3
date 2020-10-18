@@ -4,10 +4,11 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include "AESLib.h"
-
-
 // define DHT 11
 #define DHTTYPE DHT11 //DHT 11
+
+AESLib aesLib;
+byte aes_key[] = { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C };
 
 //Change the credientials below, so your ESP8266connects to your router
 const char* ssid = "test";
@@ -17,12 +18,6 @@ const char* password = "12345678";
 const char* mqtt_server = "192.168.43.179";
 const char* mqtt_user = "thao";
 const char* mqtt_pass = "1";
-
-// Intializes the AESLib , Key, IV
-AESLib aesLib;
-
-byte key[] = { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C };
-byte my_iv[N_BLOCK] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 // Intializes the espClient
 WiFiClient espClient;
@@ -37,6 +32,21 @@ DHT dht(DHTPin, DHTTYPE);
 // Timer's auxiliary variables
 long now = millis();
 long lastMeasure = 0;
+
+
+String encrypt(char * msg, uint16_t msgLen, byte iv[]) {
+  int cipherlength = aesLib.get_cipher64_length(msgLen);
+  char encrypted[cipherlength]; // AHA! needs to be large, 2x is not enough
+  aesLib.encrypt64(msg, msgLen, encrypted, aes_key, sizeof(aes_key), iv);
+  Serial.print("encrypted = "); Serial.println(encrypted);
+  return String(encrypted);
+}
+
+String decrypt(char * msg, uint16_t msgLen, byte iv[]) {
+  char decrypted[msgLen];
+  aesLib.decrypt64(msg, msgLen, decrypted, aes_key, sizeof(aes_key), iv);
+  return String(decrypted);
+}
 
 // Don't change the function below. This functions connects your ESP8266 to your router
 void setup_wifi() {
@@ -86,12 +96,24 @@ void setup() {
   Serial.begin(9600);
   setup_wifi();
   client.setServer(mqtt_server, 1883);
-  
+  aesLib.set_paddingmode(paddingMode::Array);
 } 
+
+void wait(unsigned long milliseconds) {
+  unsigned long timeout = millis() + milliseconds;
+  while (millis() < timeout) {
+    yield();
+  }
+}
 
 //For this project, you don't need to change anything in the loop function.
 // Basically it ensures that you ESP is connected to your broker
 void loop() {
+  byte key[] = { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C };
+    
+  // put your setup code here, to run once:
+  byte temp_iv[N_BLOCK] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  byte humidity_iv[N_BLOCK] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   if (!client.connected()) {
     reconnect();
   }
@@ -110,15 +132,17 @@ void loop() {
       Serial.println("Failed to read from DHT sensor");
       return;
     }
-    static char temperatureTemp[7];
+    static char temperatureTemp[256];
     dtostrf(t, 6, 2, temperatureTemp);
 
-    static char humidityTemp[7];
+    static char humidityTemp[256];
     dtostrf(h, 6, 2, humidityTemp);
+
+    uint16_t tempLength = String(temperatureTemp).length();
+    uint16_t humidLength = String(humidityTemp).length();
     
-    String encHumidity = aesLib.encrypt(humidityTemp, key, my_iv);
-    String encTemperature = aesLib.encrypt(temperatureTemp, key, my_iv);
-    	
+    String encTemperature = encrypt(temperatureTemp, tempLength, temp_iv);
+    String encHumidity = encrypt(humidityTemp, humidLength, humidity_iv);
 
     int str_LengthTemperature = encTemperature.length() + 1;
     int str_LenghtHumidity = encHumidity.length() + 1;
@@ -134,10 +158,10 @@ void loop() {
     client.publish("esp8266/humidity",encHumidityChar);
 
     Serial.print("Humidity: ");
-    Serial.print(encHumidity);
+    Serial.print(h);
     
-    Serial.print(" Temperature: ");
-    Serial.print(encTemperature);
+    Serial.print("%t Temperature: ");
+    Serial.print(t);
     Serial.println(" \t\t\t\t\t *C ");
   }
 }

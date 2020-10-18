@@ -1,6 +1,11 @@
 import Vue from 'vue'
 import App from './App.vue'
 import VueMqtt from 'vue-mqtt'
+import vuetify from './plugins/vuetify';
+import store from './store'
+import 'bootstrap/dist/css/bootstrap.min.css'
+import 'jquery/src/jquery.js'
+import 'bootstrap/dist/js/bootstrap.min.js'
 Vue.config.productionTip = false
 Vue.use(VueMqtt, 'ws://192.168.43.179:9001', 
 {
@@ -9,5 +14,7 @@ Vue.use(VueMqtt, 'ws://192.168.43.179:9001',
   password: '1'
 })
 new Vue({
-  render: h => h(App),
+  vuetify,
+  store,
+  render: h => h(App)
 }).$mount('#app')

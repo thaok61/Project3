@@ -1,94 +1,151 @@
 <template>
-  <div>
-  Nhiet do la:
-    {{temp}}
-    <br>
-  Do am la: 
-    {{humidity}}  
-  </div>
+  <v-container>
+    <v-row class="text-center">
+      <v-col cols="12">
+        <v-img
+          :src="require('../assets/logo.svg')"
+          class="my-3"
+          contain
+          height="200"
+        />
+      </v-col>
+
+      <v-col class="mb-4">
+        <h1 class="display-2 font-weight-bold mb-3">
+          Welcome to Vuetify
+        </h1>
+
+        <p class="subheading font-weight-regular">
+          For help and collaboration with other Vuetify developers,
+          <br>please join our online
+          <a
+            href="https://community.vuetifyjs.com"
+            target="_blank"
+          >Discord Community</a>
+        </p>
+      </v-col>
+
+      <v-col
+        class="mb-5"
+        cols="12"
+      >
+        <h2 class="headline font-weight-bold mb-3">
+          What's next?
+        </h2>
+
+        <v-row justify="center">
+          <a
+            v-for="(next, i) in whatsNext"
+            :key="i"
+            :href="next.href"
+            class="subheading mx-3"
+            target="_blank"
+          >
+            {{ next.text }}
+          </a>
+        </v-row>
+      </v-col>
+
+      <v-col
+        class="mb-5"
+        cols="12"
+      >
+        <h2 class="headline font-weight-bold mb-3">
+          Important Links
+        </h2>
+
+        <v-row justify="center">
+          <a
+            v-for="(link, i) in importantLinks"
+            :key="i"
+            :href="link.href"
+            class="subheading mx-3"
+            target="_blank"
+          >
+            {{ link.text }}
+          </a>
+        </v-row>
+      </v-col>
+
+      <v-col
+        class="mb-5"
+        cols="12"
+      >
+        <h2 class="headline font-weight-bold mb-3">
+          Ecosystem
+        </h2>
+
+        <v-row justify="center">
+          <a
+            v-for="(eco, i) in ecosystem"
+            :key="i"
+            :href="eco.href"
+            class="subheading mx-3"
+            target="_blank"
+          >
+            {{ eco.text }}
+          </a>
+        </v-row>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script>
-  import CryptoJS from 'crypto-js'
-  const key = '2B7E151628AED2A6ABF7158809CF4F3C' // change to your key
-  const base64_iv = 'AAAAAAAAAAAAAAAAAAAAAA=='
-  const plain_iv = new Buffer(base64_iv, 'base64').toString('hex');
   export default {
     name: 'HelloWorld',
-    mounted () {
-      this.$mqtt.subscribe("esp8266/+")
-    },
-    data () {
-      return {
-        temp: this.aesDencrypt('KsqzbRL7DAaGuhH+GhJaNQ=='),
-        humidity: 0
-      }
-    },
-    mqtt: {
-      "esp8266/temperature" (data) {
-        
-        // var stringData = new TextDecoder("utf-8").decode(data);
-        // var stringData = Buffer.from(data).toString('utf-8')
-        var stringData = this.utf8ArrayToString(data)
-        console.log(stringData);
-        this.temp = this.aesDencrypt(stringData)
-      },
-      "esp8266/humidity" (data) {
-        // var stringData = new TextDecoder("utf-8").decode(data);
-        var stringData = this.utf8ArrayToString(data)
-        this.humidity = this.aesDencrypt(stringData)
-      }
-    },
-    methods: {
-      aesEncrypt(txt) {
-        const cipher = CryptoJS.AES.encrypt(txt, CryptoJS.enc.Hex.parse(key), {
-          iv: CryptoJS.enc.Hex.parse(plain_iv),
-          mode: CryptoJS.mode.CBC,
-          padding: CryptoJS.pad.ZeroPadding
-        })
 
-        return cipher
-      },
-      aesDencrypt(txt) {
-        const cipher = CryptoJS.AES.decrypt(txt, CryptoJS.enc.Hex.parse(key), {
-          iv: CryptoJS.enc.Hex.parse(plain_iv),
-          mode: CryptoJS.mode.CBC,
-          padding: CryptoJS.pad.ZeroPadding
-        })
-        var plaintext = cipher.toString(CryptoJS.enc.Base64);
-        var decoded_b64msg =  new Buffer(plaintext, 'base64').toString('ascii');
-        var decoded_msg =     new Buffer( decoded_b64msg , 'base64').toString('ascii')
-        return decoded_msg
-        // return cipher
-      },
-      utf8ArrayToString(aBytes) {
-        var sView = "";
-    
-        for (var nPart, nLen = aBytes.length, nIdx = 0; nIdx < nLen; nIdx++) {
-          nPart = aBytes[nIdx];
-        
-          sView += String.fromCharCode(
-            nPart > 251 && nPart < 254 && nIdx + 5 < nLen ? /* six bytes */
-                /* (nPart - 252 << 30) may be not so safe in ECMAScript! So...: */
-                (nPart - 252) * 1073741824 + (aBytes[++nIdx] - 128 << 24) + (aBytes[++nIdx] - 128 << 18) + (aBytes[++nIdx] - 128 << 12) + (aBytes[++nIdx] - 128 << 6) + aBytes[++nIdx] - 128
-            : nPart > 247 && nPart < 252 && nIdx + 4 < nLen ? /* five bytes */
-                (nPart - 248 << 24) + (aBytes[++nIdx] - 128 << 18) + (aBytes[++nIdx] - 128 << 12) + (aBytes[++nIdx] - 128 << 6) + aBytes[++nIdx] - 128
-            : nPart > 239 && nPart < 248 && nIdx + 3 < nLen ? /* four bytes */
-                (nPart - 240 << 18) + (aBytes[++nIdx] - 128 << 12) + (aBytes[++nIdx] - 128 << 6) + aBytes[++nIdx] - 128
-            : nPart > 223 && nPart < 240 && nIdx + 2 < nLen ? /* three bytes */
-                (nPart - 224 << 12) + (aBytes[++nIdx] - 128 << 6) + aBytes[++nIdx] - 128
-            : nPart > 191 && nPart < 224 && nIdx + 1 < nLen ? /* two bytes */
-                (nPart - 192 << 6) + aBytes[++nIdx] - 128
-            : /* nPart < 127 ? */ /* one byte */
-                nPart
-          );
-        }
-    
-        return sView;
-      }
-    },
-    computed: {
-
-    }
+    data: () => ({
+      ecosystem: [
+        {
+          text: 'vuetify-loader',
+          href: 'https://github.com/vuetifyjs/vuetify-loader',
+        },
+        {
+          text: 'github',
+          href: 'https://github.com/vuetifyjs/vuetify',
+        },
+        {
+          text: 'awesome-vuetify',
+          href: 'https://github.com/vuetifyjs/awesome-vuetify',
+        },
+      ],
+      importantLinks: [
+        {
+          text: 'Documentation',
+          href: 'https://vuetifyjs.com',
+        },
+        {
+          text: 'Chat',
+          href: 'https://community.vuetifyjs.com',
+        },
+        {
+          text: 'Made with Vuetify',
+          href: 'https://madewithvuejs.com/vuetify',
+        },
+        {
+          text: 'Twitter',
+          href: 'https://twitter.com/vuetifyjs',
+        },
+        {
+          text: 'Articles',
+          href: 'https://medium.com/vuetify',
+        },
+      ],
+      whatsNext: [
+        {
+          text: 'Explore components',
+          href: 'https://vuetifyjs.com/components/api-explorer',
+        },
+        {
+          text: 'Select a layout',
+          href: 'https://vuetifyjs.com/getting-started/pre-made-layouts',
+        },
+        {
+          text: 'Frequently Asked Questions',
+          href: 'https://vuetifyjs.com/getting-started/frequently-asked-questions',
+        },
+      ],
+    }),
   }
 </script>
